@@ -1,32 +1,41 @@
-# Backend Modules (NestJS Hexagonal + Prisma)
+# Generador BDD – Backend (NestJS + Prisma)
 
-Este paquete contiene **estructura y código** para añadir al proyecto NestJS recién creado con `nest new`.
+Este repositorio contiene la API del Generador BDD implementada con NestJS, Prisma y una arquitectura hexagonal básica.
 
-## Uso rápido
+## Requisitos previos
+
+- Node.js 20+
+- Base de datos PostgreSQL disponible
+- (Opcional) Docker para levantar servicios auxiliares
+
+## Puesta en marcha
 
 ```bash
-# 1) Crear proyecto NestJS
-nest new backend --strict
-cd backend
+# 1) Instala dependencias
+npm install
 
-# 2) Dependencias necesarias
-npm i @prisma/client class-validator class-transformer
-npm i -D prisma
+# 2) Configura las variables de entorno
+cp .env.example .env
+# edita .env con la cadena de conexión correcta para tu base de datos
 
-# 3) Copia estos archivos dentro del proyecto
-# (desde donde descargaste el zip)
-unzip -o backend-modules.zip -d .
-
-# 4) Variables de entorno
-cp -n .env.example .env
-
-# 5) Prisma: crear DB y migraciones
+# 3) Ejecuta migraciones de Prisma
 npx prisma migrate dev --name init
 
-# 6) Ejecuta
+# 4) Inicia el servidor en modo desarrollo
 npm run start:dev
 ```
 
-## Endpoints de prueba
-- POST `http://localhost:3001/users` body: `{ "email": "uno@ejemplo.com", "name": "Uno" }`
-- GET  `http://localhost:3001/users/{id}`
+El servidor se expone en `http://localhost:3001` (puerto configurado en `main.ts`).
+
+## Funcionalidad principal
+
+- `POST /users`: crea un usuario. El campo `name` es opcional; si no se envía, se infiere a partir del email.
+- `GET /users/:id`: obtiene un usuario por su identificador.
+
+## Pruebas
+
+Ejecuta las pruebas unitarias con:
+
+```bash
+npm test
+```
