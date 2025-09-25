@@ -1,0 +1,303 @@
+// =========================================================
+// Prisma Schema — Plataforma de Modelado, Calidad, Codegen y QA
+// BD: PostgreSQL
+// =========================================================
+generator client { 
+  provider = "prisma-client-js"
+}
+datasource db   { 
+  provider = "postgresql" 
+  url = env("DATABASE_URL") 
+}
+
+// ========================= Enums =========================
+enum RolProyecto { 
+  PROPIETARIO 
+  EDITOR 
+  LECTOR 
+}
+enum EstadoHilo { 
+  ABIERTO 
+  RESUELTO
+}
+enum Severidad { 
+  ERROR 
+  ADVERTENCIA 
+  INFO 
+}
+enum EstadoHallazgo { 
+  ABIERTO 
+  RESUELTO 
+  IGNORADO 
+}
+enum TipoSugerencia { 
+  ATRIBUTO 
+  RELACION 
+  CARDINALIDAD 
+}
+enum EstadoSugerencia { 
+  PROPUESTO 
+  APLICADO 
+  DESCARTADO 
+  REVERTIDO 
+}
+enum EstadoGeneracion {
+  PENDIENTE
+  EJECUTANDO
+  COMPLETADO
+  FALLADO
+}
+
+enum TipoArtefacto {
+  ZIP
+  OPENAPI
+  MIGRACIONES
+}
+
+enum EstadoPrueba {
+  APROBADO
+  FALLADO
+  PARCIAL
+}
+
+enum TipoCambio {
+  ADD
+  UPDATE
+  REMOVE
+}
+
+// ========================= Modelos =========================
+
+// 1) Usuario
+model Usuario {
+  id             String              @id @default(uuid()) @db.Uuid
+  nombre         String              @db.VarChar(100)
+  email          String              @unique @db.VarChar(255)
+  fechaCreacion  DateTime            @default(now())
+  activo         Boolean             @default(true)
+
+  // Relaciones
+  proyectosPropietario Proyecto[]    @relation("ProyectoPropietario")
+  membresias           ProyectoUsuario[]
+}
+
+// 2) Proyecto
+model Proyecto {
+  id            String            @id @default(uuid()) @db.Uuid
+  nombre        String            @db.VarChar(200)
+  descripcion   String?           @db.Text
+  fechaCreacion DateTime          @default(now())
+  archivado     Boolean           @default(false)
+
+  // Propietario (quien lo creó)
+  propietarioId String            @db.Uuid
+  propietario   Usuario           @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
+
+  // Relaciones
+  membresias    ProyectoUsuario[]
+  modelos       ModeloJson[]
+  jobs          GeneracionJob[]
+  pruebas       PruebaEjecucion[]
+  datosSemilla  DatoSemilla[]
+}
+
+// 3) ProyectoUsuario (membresía por proyecto)
+model ProyectoUsuario {
+  id              String       @id @default(uuid()) @db.Uuid
+  proyectoId      String       @db.Uuid
+  usuarioId       String       @db.Uuid
+  rol             RolProyecto
+  fechaAsignacion DateTime     @default(now())
+  activo          Boolean      @default(true) // no borrar para preservar histórico
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  // Back-relations por membresía
+  hilosCreados        ComentarioHilo[]      @relation("HiloCreadorMembresia")
+  comentarios         Comentario[]          @relation("ComentarioAutorMembresia")
+  modelosCreados      ModeloJson[]          @relation("ModeloCreadorMembresia")
+  sugerencias         IASugerencia[]        @relation("SugerenciaCreadorMembresia")
+  hallazgosResueltos  ValidacionHallazgo[]  @relation("HallazgoResueltoPorMembresia")
+
+  @@unique([proyectoId, usuarioId])
+  // Para FK compuesta desde ModeloJson:
+  @@unique([id, proyectoId])
+}
+
+// 4) ModeloJson (modelo serializado y versionado)
+model ModeloJson {
+  id             String    @id @default(uuid()) @db.Uuid
+  proyectoId     String    @db.Uuid
+  contenido      Json
+  version        Int
+  fechaCreacion  DateTime  @default(now())
+  esActual       Boolean   @default(false)
+  nota           String?   @db.VarChar(500)
+
+
+ creadorMembresiaId String?          @db.Uuid
+creadorMembresia   ProyectoUsuario? @relation("ModeloCreadorMembresia", fields: [creadorMembresiaId, proyectoId], references: [id, proyectoId], onDelete: Restrict )
+
+  proyecto    Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  hallazgos   ValidacionHallazgo[]
+  sugerencias IASugerencia[]
+
+  @@unique([proyectoId, version])
+  @@index([proyectoId, esActual])
+}
+
+// 5) ComentarioHilo (coedición)
+model ComentarioHilo {
+  id         String           @id @default(uuid()) @db.Uuid
+  elementRef String           @db.VarChar(200)
+  estado     EstadoHilo       @default(ABIERTO)
+  creadoEn   DateTime         @default(now())
+
+  membresiaId String?          @db.Uuid
+  membresia   ProyectoUsuario? @relation("HiloCreadorMembresia", fields: [membresiaId], references: [id], onDelete: SetNull)
+
+  comentarios Comentario[]
+}
+
+
+model Comentario {
+  id         String           @id @default(uuid()) @db.Uuid
+  hiloId     String           @db.Uuid
+  contenido  String           @db.Text
+  creadoEn   DateTime         @default(now())
+
+  autorMembresiaId String?          @db.Uuid
+  autorMembresia   ProyectoUsuario? @relation("ComentarioAutorMembresia", fields: [autorMembresiaId], references: [id], onDelete: SetNull)
+
+  hilo ComentarioHilo @relation(fields: [hiloId], references: [id], onDelete: Cascade)
+}
+
+// 7) ValidacionRegla (catálogo)
+model ValidacionRegla {
+  codigo    String     @id @db.VarChar(50)
+  nombre    String     @db.VarChar(150)
+  categoria String     @db.VarChar(50)
+  severidad Severidad
+
+  hallazgos ValidacionHallazgo[]
+}
+
+// 8) ValidacionHallazgo (resultado de reglas)
+model ValidacionHallazgo {
+  id                 String           @id @default(uuid()) @db.Uuid
+  modeloVersionId    String           @db.Uuid
+  ruleCode           String           @db.VarChar(50)
+  severidad          Severidad
+  mensaje            String           @db.Text
+  elementRef         String           @db.VarChar(200)
+  estado             EstadoHallazgo   @default(ABIERTO)
+  creadoEn           DateTime         @default(now())
+
+  // Resuelto por membresía (si aplica)
+  resueltoPorMembresiaId String?          @db.Uuid
+  resueltoPorMembresia   ProyectoUsuario? @relation("HallazgoResueltoPorMembresia", fields: [resueltoPorMembresiaId], references: [id], onDelete: SetNull)
+
+  modelo ModeloJson      @relation(fields: [modeloVersionId], references: [id], onDelete: Cascade)
+  regla  ValidacionRegla @relation(fields: [ruleCode], references: [codigo])
+}
+
+// 9) IASugerencia
+model IASugerencia {
+  id               String           @id @default(uuid()) @db.Uuid
+  modeloVersionId  String           @db.Uuid
+  tipo             TipoSugerencia
+  descripcion      String           @db.Text
+  estado           EstadoSugerencia @default(PROPUESTO)
+  creadoEn         DateTime         @default(now())
+
+  creadorMembresiaId String?          @db.Uuid
+  creadorMembresia   ProyectoUsuario? @relation("SugerenciaCreadorMembresia", fields: [creadorMembresiaId], references: [id], onDelete: SetNull)
+
+  diffId String? @db.Uuid
+  diff   Diff?   @relation(fields: [diffId], references: [id])
+
+  modelo ModeloJson @relation(fields: [modeloVersionId], references: [id], onDelete: Cascade)
+}
+
+// 10) Diff
+model Diff {
+  id       String        @id @default(uuid()) @db.Uuid
+  resumen  String        @db.VarChar(300)
+
+  entradas    DiffEntrada[]
+  sugerencias IASugerencia[]
+}
+
+// 11) DiffEntrada
+model DiffEntrada {
+  id      String     @id @default(uuid()) @db.Uuid
+  diffId  String     @db.Uuid
+  path    String     @db.VarChar(300)
+  cambio  TipoCambio
+  antes   Json?
+  despues Json?
+
+  diff Diff @relation(fields: [diffId], references: [id], onDelete: Cascade)
+}
+
+// 12) GeneracionJob (codegen)
+model GeneracionJob {
+  id         String           @id @default(uuid()) @db.Uuid
+  proyectoId String           @db.Uuid
+  estado     EstadoGeneracion @default(PENDIENTE)
+  opciones   Json?
+  inicio     DateTime?
+  fin        DateTime?
+  log        String?          @db.Text
+
+  proyecto  Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  artefactos Artefacto[]
+}
+
+// 13) Artefacto
+model Artefacto {
+  id    String       @id @default(uuid()) @db.Uuid
+  jobId String       @db.Uuid
+  tipo  TipoArtefacto
+  ruta  String       @db.VarChar(500)
+
+  job GeneracionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+// 14) PruebaEjecucion (smoke)
+model PruebaEjecucion {
+  id         String      @id @default(uuid()) @db.Uuid
+  proyectoId String      @db.Uuid
+  baseURL    String      @db.VarChar(255)
+  estado     EstadoPrueba
+  inicio     DateTime
+  fin        DateTime
+
+  proyecto  Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  resultados PruebaCasoResultado[]
+}
+
+// 15) PruebaCasoResultado
+model PruebaCasoResultado {
+  id             String          @id @default(uuid()) @db.Uuid
+  ejecucionId    String          @db.Uuid
+  endpoint       String          @db.VarChar(300)
+  metodo         String          @db.VarChar(10)
+  statusEsperado Int
+  statusObtenido Int
+  duracionMs     Int
+  paso           Boolean
+
+  ejecucion PruebaEjecucion @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+}
+
+// 16) DatoSemilla
+model DatoSemilla {
+  id          String   @id @default(uuid()) @db.Uuid
+  proyectoId  String   @db.Uuid
+  entidad     String   @db.VarChar(100)
+  payloadJSON Json
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+}
