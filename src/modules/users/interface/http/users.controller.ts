@@ -9,7 +9,7 @@ import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 class CreateUserDto {
   @IsEmail() email!: string;
-  @IsOptional() @IsString() name: string;
+  @IsOptional() @IsString() name?: string;
 }
 
 @Controller('users')

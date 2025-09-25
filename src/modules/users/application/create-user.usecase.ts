@@ -10,10 +10,18 @@ import { randomUUID } from 'crypto';
 export class CreateUserUseCase {
   constructor(@Inject(USER_REPOSITORY) private readonly repo: UserRepository) {}
 
-  async execute(input: { email: string; name: string }) {
+  async execute(input: { email: string; name?: string }) {
     const exists = await this.repo.findByEmail(input.email);
     if (exists) throw new BadRequestException('Email ya registrado');
-    const user = new User(randomUUID(), input.email, input.name);
+    const name = this.resolveName(input.email, input.name);
+    const user = new User(randomUUID(), input.email, name);
     return this.repo.create(user);
+  }
+
+  private resolveName(email: string, name?: string) {
+    const trimmed = name?.trim();
+    if (trimmed && trimmed.length > 0) return trimmed;
+    const [localPart] = email.split('@');
+    return localPart ?? email;
   }
 }
