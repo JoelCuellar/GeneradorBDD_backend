@@ -108,6 +108,7 @@ export interface RemoveIdentityInput {
 }
 
 export interface DomainModelRepository {
+  ensureViewerAccess(projectId: string, actorId: string): Promise<void>;
   ensureEditorAccess(projectId: string, actorId: string): Promise<EditorAccess>;
   getModel(projectId: string): Promise<DomainModelSnapshot>;
   findClassById(projectId: string, classId: string): Promise<DomainClass | null>;
@@ -127,3 +128,5 @@ export interface DomainModelRepository {
   defineIdentity(input: DefineIdentityInput): Promise<DomainIdentity>;
   removeIdentity(input: RemoveIdentityInput): Promise<void>;
 }
+
+

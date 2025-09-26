@@ -163,6 +163,22 @@ const mapRelation = (relation: PrismaDominioRelacion): DomainRelation => ({
 export class PrismaDomainModelRepository implements DomainModelRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async ensureViewerAccess(projectId: string, actorId: string): Promise<void> {
+    const membership = await this.prisma.proyectoUsuario.findFirst({
+      where: { proyectoId: projectId, usuarioId: actorId, activo: true },
+      select: { id: true },
+    });
+    if (membership) return;
+
+    const project = await this.prisma.proyecto.findFirst({
+      where: { id: projectId, propietarioId: actorId },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new ForbiddenException('El usuario no posee permisos para visualizar el proyecto');
+    }
+  }
+
   async ensureEditorAccess(projectId: string, actorId: string) {
     const membership = await this.prisma.proyectoUsuario.findFirst({
       where: {
@@ -378,10 +394,7 @@ export class PrismaDomainModelRepository implements DomainModelRepository {
         nombre: input.name,
         tipo: reverseAttributeTypeMap[input.type],
         obligatorio: input.required,
-        configuracion:
-          input.config === null
-            ? Prisma.JsonNull
-            : (input.config as Prisma.InputJsonValue | undefined),
+        configuracion: toPrismaJson(input.config),
       },
     });
 
@@ -440,7 +453,7 @@ export class PrismaDomainModelRepository implements DomainModelRepository {
       data.obligatorio = input.required;
     }
     if (input.config !== undefined) {
-      data.configuracion = input.config as any;
+      data.configuracion = toPrismaJson(input.config);
     }
 
     if (Object.keys(data).length === 0) {
@@ -793,3 +806,7 @@ export class PrismaDomainModelRepository implements DomainModelRepository {
     });
   }
 }
+
+
+
+

@@ -2,68 +2,74 @@
 // Prisma Schema — Plataforma de Modelado, Calidad, Codegen y QA
 // BD: PostgreSQL
 // =========================================================
-generator client { 
+generator client {
   provider = "prisma-client-js"
 }
-datasource db   { 
-  provider = "postgresql" 
-  url = env("DATABASE_URL") 
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ========================= Enums =========================
-enum RolProyecto { 
-  PROPIETARIO 
-  EDITOR 
-  LECTOR 
+enum RolProyecto {
+  PROPIETARIO
+  EDITOR
+  LECTOR
 }
 
-enum EstadoUsuario { 
-  ACTIVO 
-  SUSPENDIDO 
-  ELIMINADO 
+enum EstadoUsuario {
+  ACTIVO
+  SUSPENDIDO
+  ELIMINADO
 }
 
-enum AccionGestionUsuario { 
-  CREACION 
-  INVITACION 
-  ACTUALIZACION_DATOS 
-  CAMBIO_ROL 
-  ACTIVACION 
-  SUSPENSION 
-  BAJA_LOGICA 
+enum AccionGestionUsuario {
+  CREACION
+  INVITACION
+  ACTUALIZACION_DATOS
+  CAMBIO_ROL
+  ACTIVACION
+  SUSPENSION
+  BAJA_LOGICA
 }
 
-enum AccionGestionProyecto { 
-  CREACION 
-  ACTUALIZACION 
-  ARCHIVADO 
+enum AccionGestionProyecto {
+  CREACION
+  ACTUALIZACION
+  ARCHIVADO
 }
 
-enum EstadoHilo { 
-  ABIERTO 
+enum EstadoHilo {
+  ABIERTO
   RESUELTO
 }
-enum Severidad { 
-  ERROR 
-  ADVERTENCIA 
-  INFO 
+
+enum Severidad {
+  ERROR
+  ADVERTENCIA
+  INFO
 }
-enum EstadoHallazgo { 
-  ABIERTO 
-  RESUELTO 
-  IGNORADO 
+
+enum EstadoHallazgo {
+  ABIERTO
+  RESUELTO
+  IGNORADO
 }
-enum TipoSugerencia { 
-  ATRIBUTO 
-  RELACION 
-  CARDINALIDAD 
+
+enum TipoSugerencia {
+  ATRIBUTO
+  RELACION
+  CARDINALIDAD
 }
-enum EstadoSugerencia { 
-  PROPUESTO 
-  APLICADO 
-  DESCARTADO 
-  REVERTIDO 
+
+enum EstadoSugerencia {
+  PROPUESTO
+  APLICADO
+  DESCARTADO
+  REVERTIDO
 }
+
 enum EstadoGeneracion {
   PENDIENTE
   EJECUTANDO
@@ -89,6 +95,19 @@ enum TipoCambio {
   REMOVE
 }
 
+enum AccionModeloDominio {
+  CLASE_CREADA
+  CLASE_ACTUALIZADA
+  CLASE_ELIMINADA
+  ATRIBUTO_CREADO
+  ATRIBUTO_ACTUALIZADO
+  ATRIBUTO_ELIMINADO
+  RELACION_CREADA
+  RELACION_ACTUALIZADA
+  RELACION_ELIMINADA
+  IDENTIDAD_DEFINIDA
+  IDENTIDAD_ELIMINADA
+}
 
 enum TipoAtributoDominio {
   STRING
@@ -108,89 +127,84 @@ enum MultiplicidadRelacion {
   CERO_O_MAS
 }
 
-enum AccionModeloDominio {
-  CLASE_CREADA
-  CLASE_ACTUALIZADA
-  CLASE_ELIMINADA
-  ATRIBUTO_CREADO
-  ATRIBUTO_ACTUALIZADO
-  ATRIBUTO_ELIMINADO
-  RELACION_CREADA
-  RELACION_ACTUALIZADA
-  RELACION_ELIMINADA
-  IDENTIDAD_DEFINIDA
-  IDENTIDAD_ELIMINADA
+enum CategoriaValidacionDominio {
+  SINTAXIS
+  INTEGRIDAD
+  NORMALIZACION
+  ANTIPATRONES
 }
 
 // ========================= Modelos =========================
 
 // 1) Usuario
 model Usuario {
-  id             String              @id @default(uuid()) @db.Uuid
-  nombre         String              @db.VarChar(100)
-  email          String              @unique @db.VarChar(255)
-  fechaCreacion       DateTime            @default(now())
-  activo              Boolean             @default(true)
-  estado              EstadoUsuario       @default(ACTIVO)
-  fechaActualizacion  DateTime            @updatedAt
-  suspendidoEn        DateTime?
-  eliminadoEn         DateTime?
+  id                 String        @id @default(uuid()) @db.Uuid
+  nombre             String        @db.VarChar(100)
+  email              String        @unique @db.VarChar(255)
+  fechaCreacion      DateTime      @default(now())
+  activo             Boolean       @default(true)
+  estado             EstadoUsuario @default(ACTIVO)
+  fechaActualizacion DateTime      @updatedAt
+  suspendidoEn       DateTime?
+  eliminadoEn        DateTime?
 
   // Relaciones
-  proyectosPropietario Proyecto[]         @relation("ProyectoPropietario")
-  membresias           ProyectoUsuario[]
-  auditoriaAcciones    UsuarioAuditoria[]
-  auditoriaActuando    UsuarioAuditoria[] @relation("AuditoriaUsuarioActor")
-  auditoriaProyectos   ProyectoAuditoria[] @relation("ProyectoAuditoriaActor")
-  dominioAuditoria     DominioAuditoria[] @relation("DominioAuditoriaActor")
+  proyectosPropietario        Proyecto[]                  @relation("ProyectoPropietario")
+  membresias                  ProyectoUsuario[]
+  auditoriaAcciones           UsuarioAuditoria[]
+  auditoriaActuando           UsuarioAuditoria[]          @relation("AuditoriaUsuarioActor")
+  auditoriaProyectos          ProyectoAuditoria[]         @relation("ProyectoAuditoriaActor")
+  dominioAuditoria            DominioAuditoria[]          @relation("DominioAuditoriaActor")
+  dominioHallazgosGestionados DominioValidacionHallazgo[] @relation("DominioHallazgoActor")
 }
 
 // 2) Proyecto
 model Proyecto {
-  id                   String            @id @default(uuid()) @db.Uuid
-  nombre               String            @unique @db.VarChar(200)
-  descripcion          String?           @db.Text
-  fechaCreacion        DateTime          @default(now())
-  fechaActualizacion   DateTime          @updatedAt
-  archivado            Boolean           @default(false)
-  archivadoEn          DateTime?
+  id                 String    @id @default(uuid()) @db.Uuid
+  nombre             String    @unique @db.VarChar(200)
+  descripcion        String?   @db.Text
+  fechaCreacion      DateTime  @default(now())
+  fechaActualizacion DateTime  @updatedAt
+  archivado          Boolean   @default(false)
+  archivadoEn        DateTime?
 
   // Propietario (quien lo creo)
-  propietarioId        String            @db.Uuid
-  propietario          Usuario           @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
+  propietarioId String  @db.Uuid
+  propietario   Usuario @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
 
   // Relaciones
-  membresias           ProyectoUsuario[]
-  modelos              ModeloJson[]
-  jobs                 GeneracionJob[]
-  pruebas              PruebaEjecucion[]
-  datosSemilla         DatoSemilla[]
-  auditoriaAcciones    ProyectoAuditoria[]
-  dominioClases       DominioClase[]
-  dominioRelaciones   DominioRelacion[]
-  dominioAuditoria    DominioAuditoria[]
+  membresias        ProyectoUsuario[]
+  modelos           ModeloJson[]
+  jobs              GeneracionJob[]
+  pruebas           PruebaEjecucion[]
+  datosSemilla      DatoSemilla[]
+  auditoriaAcciones ProyectoAuditoria[]
+  dominioClases     DominioClase[]
+  dominioRelaciones DominioRelacion[]
+  dominioAuditoria  DominioAuditoria[]
+  dominioHallazgos  DominioValidacionHallazgo[]
 
   @@index([propietarioId])
 }
 
 // 3) ProyectoUsuario (membresía por proyecto)
 model ProyectoUsuario {
-  id              String       @id @default(uuid()) @db.Uuid
-  proyectoId      String       @db.Uuid
-  usuarioId       String       @db.Uuid
+  id              String      @id @default(uuid()) @db.Uuid
+  proyectoId      String      @db.Uuid
+  usuarioId       String      @db.Uuid
   rol             RolProyecto
-  fechaAsignacion DateTime     @default(now())
-  activo          Boolean      @default(true) // no borrar para preservar histórico
+  fechaAsignacion DateTime    @default(now())
+  activo          Boolean     @default(true) // no borrar para preservar histórico
 
   proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   // Back-relations por membresía
-  hilosCreados        ComentarioHilo[]      @relation("HiloCreadorMembresia")
-  comentarios         Comentario[]          @relation("ComentarioAutorMembresia")
-  modelosCreados      ModeloJson[]          @relation("ModeloCreadorMembresia")
-  sugerencias         IASugerencia[]        @relation("SugerenciaCreadorMembresia")
-  hallazgosResueltos  ValidacionHallazgo[]  @relation("HallazgoResueltoPorMembresia")
+  hilosCreados       ComentarioHilo[]     @relation("HiloCreadorMembresia")
+  comentarios        Comentario[]         @relation("ComentarioAutorMembresia")
+  modelosCreados     ModeloJson[]         @relation("ModeloCreadorMembresia")
+  sugerencias        IASugerencia[]       @relation("SugerenciaCreadorMembresia")
+  hallazgosResueltos ValidacionHallazgo[] @relation("HallazgoResueltoPorMembresia")
 
   @@unique([proyectoId, usuarioId])
   // Para FK compuesta desde ModeloJson:
@@ -198,83 +212,83 @@ model ProyectoUsuario {
 }
 
 model ProyectoAuditoria {
-  id         String               @id @default(uuid()) @db.Uuid
-  proyectoId String               @db.Uuid
-  actorId    String?              @db.Uuid
+  id         String                @id @default(uuid()) @db.Uuid
+  proyectoId String                @db.Uuid
+  actorId    String?               @db.Uuid
   accion     AccionGestionProyecto
   detalle    Json?
-  creadoEn   DateTime             @default(now())
+  creadoEn   DateTime              @default(now())
 
-  proyecto Proyecto            @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  actor    Usuario?            @relation("ProyectoAuditoriaActor", fields: [actorId], references: [id], onDelete: SetNull)
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  actor    Usuario? @relation("ProyectoAuditoriaActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([proyectoId])
   @@index([actorId])
 }
 
 model UsuarioAuditoria {
-  id        String                @id @default(uuid()) @db.Uuid
-  usuarioId String                @db.Uuid
-  actorId   String?               @db.Uuid
+  id        String               @id @default(uuid()) @db.Uuid
+  usuarioId String               @db.Uuid
+  actorId   String?              @db.Uuid
   accion    AccionGestionUsuario
   detalle   Json?
-  creadoEn  DateTime              @default(now())
+  creadoEn  DateTime             @default(now())
 
-  usuario Usuario                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  actor   Usuario?               @relation("AuditoriaUsuarioActor", fields: [actorId], references: [id], onDelete: SetNull)
+  usuario Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  actor   Usuario? @relation("AuditoriaUsuarioActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([usuarioId])
   @@index([actorId])
 }
 
 model DominioClase {
-  id             String              @id @default(uuid()) @db.Uuid
-  proyectoId     String              @db.Uuid
-  nombre         String              @db.VarChar(150)
-  descripcion    String?             @db.VarChar(500)
-  creadoEn       DateTime            @default(now())
-  actualizadoEn  DateTime            @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  proyectoId    String   @db.Uuid
+  nombre        String   @db.VarChar(150)
+  descripcion   String?  @db.VarChar(500)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
 
-  proyecto        Proyecto                @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
-  atributos       DominioAtributo[]
-  relacionesOrigen DominioRelacion[]      @relation("RelacionClaseOrigen")
-  relacionesDestino DominioRelacion[]     @relation("RelacionClaseDestino")
-  identidades     DominioIdentidad[]
+  proyecto          Proyecto           @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  atributos         DominioAtributo[]
+  relacionesOrigen  DominioRelacion[]  @relation("RelacionClaseOrigen")
+  relacionesDestino DominioRelacion[]  @relation("RelacionClaseDestino")
+  identidades       DominioIdentidad[]
 
   @@unique([proyectoId, nombre])
   @@index([proyectoId])
 }
 
 model DominioAtributo {
-  id             String                @id @default(uuid()) @db.Uuid
-  claseId        String                @db.Uuid
-  nombre         String                @db.VarChar(150)
-  tipo           TipoAtributoDominio
-  obligatorio    Boolean               @default(false)
-  configuracion  Json?
-  creadoEn       DateTime              @default(now())
-  actualizadoEn  DateTime              @updatedAt
+  id            String              @id @default(uuid()) @db.Uuid
+  claseId       String              @db.Uuid
+  nombre        String              @db.VarChar(150)
+  tipo          TipoAtributoDominio
+  obligatorio   Boolean             @default(false)
+  configuracion Json?
+  creadoEn      DateTime            @default(now())
+  actualizadoEn DateTime            @updatedAt
 
-  clase       DominioClase             @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  clase       DominioClase               @relation(fields: [claseId], references: [id], onDelete: Cascade)
   identidades DominioIdentidadAtributo[]
 
   @@unique([claseId, nombre])
 }
 
 model DominioRelacion {
-  id                    String                  @id @default(uuid()) @db.Uuid
-  proyectoId            String                  @db.Uuid
-  origenId              String                  @db.Uuid
-  destinoId             String                  @db.Uuid
-  nombre                String?                 @db.VarChar(150)
-  rolOrigen             String?                 @db.VarChar(150)
-  rolDestino            String?                 @db.VarChar(150)
-  multiplicidadOrigen   MultiplicidadRelacion
-  multiplicidadDestino  MultiplicidadRelacion
-  creadoEn              DateTime                @default(now())
-  actualizadoEn         DateTime                @updatedAt
+  id                   String                @id @default(uuid()) @db.Uuid
+  proyectoId           String                @db.Uuid
+  origenId             String                @db.Uuid
+  destinoId            String                @db.Uuid
+  nombre               String?               @db.VarChar(150)
+  rolOrigen            String?               @db.VarChar(150)
+  rolDestino           String?               @db.VarChar(150)
+  multiplicidadOrigen  MultiplicidadRelacion
+  multiplicidadDestino MultiplicidadRelacion
+  creadoEn             DateTime              @default(now())
+  actualizadoEn        DateTime              @updatedAt
 
-  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyecto Proyecto     @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   origen   DominioClase @relation("RelacionClaseOrigen", fields: [origenId], references: [id])
   destino  DominioClase @relation("RelacionClaseDestino", fields: [destinoId], references: [id])
 
@@ -284,17 +298,54 @@ model DominioRelacion {
 }
 
 model DominioIdentidad {
-  id            String                     @id @default(uuid()) @db.Uuid
-  claseId       String                     @db.Uuid
-  nombre        String                     @db.VarChar(150)
-  descripcion   String?                    @db.VarChar(500)
-  creadoEn      DateTime                   @default(now())
-  actualizadoEn DateTime                   @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  claseId       String   @db.Uuid
+  nombre        String   @db.VarChar(150)
+  descripcion   String?  @db.VarChar(500)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
 
-  clase      DominioClase               @relation(fields: [claseId], references: [id], onDelete: Cascade)
-  atributos  DominioIdentidadAtributo[]
+  clase     DominioClase               @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  atributos DominioIdentidadAtributo[]
 
   @@unique([claseId, nombre])
+}
+
+model DominioValidacionRegla {
+  codigo      String                     @id @db.VarChar(50)
+  nombre      String                     @db.VarChar(150)
+  descripcion String                     @db.VarChar(500)
+  categoria   CategoriaValidacionDominio
+  severidad   Severidad
+  sugerencia  String?                    @db.VarChar(500)
+
+  hallazgos DominioValidacionHallazgo[]
+}
+
+model DominioValidacionHallazgo {
+  id                         String                     @id @default(uuid()) @db.Uuid
+  proyectoId                 String                     @db.Uuid
+  reglaCodigo                String                     @db.VarChar(50)
+  elementoTipo               String                     @db.VarChar(50)
+  elementoPath               String                     @db.VarChar(200)
+  elementoId                 String?                    @db.Uuid
+  elementoNombre             String?                    @db.VarChar(150)
+  severidad                  Severidad
+  categoria                  CategoriaValidacionDominio
+  descripcion                String                     @db.Text
+  sugerencia                 String?                    @db.VarChar(500)
+  estado                     EstadoHallazgo             @default(ABIERTO)
+  actorUltimaActualizacionId String?                    @db.Uuid
+  justificacion              String?                    @db.VarChar(500)
+  actualizadoEn              DateTime                   @updatedAt
+  creadoEn                   DateTime                   @default(now())
+
+  proyecto                 Proyecto               @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  regla                    DominioValidacionRegla @relation(fields: [reglaCodigo], references: [codigo], onDelete: Cascade)
+  actorUltimaActualizacion Usuario?               @relation("DominioHallazgoActor", fields: [actorUltimaActualizacionId], references: [id], onDelete: SetNull)
+
+  @@unique([proyectoId, reglaCodigo, elementoPath])
+  @@index([proyectoId, reglaCodigo])
 }
 
 model DominioIdentidadAtributo {
@@ -309,14 +360,14 @@ model DominioIdentidadAtributo {
 }
 
 model DominioAuditoria {
-  id         String               @id @default(uuid()) @db.Uuid
-  proyectoId String               @db.Uuid
-  actorId    String               @db.Uuid
+  id         String              @id @default(uuid()) @db.Uuid
+  proyectoId String              @db.Uuid
+  actorId    String              @db.Uuid
   accion     AccionModeloDominio
-  entidad    String               @db.VarChar(100)
-  entidadId  String               @db.Uuid
+  entidad    String              @db.VarChar(100)
+  entidadId  String              @db.Uuid
   detalle    Json?
-  creadoEn   DateTime             @default(now())
+  creadoEn   DateTime            @default(now())
 
   proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   actor    Usuario  @relation("DominioAuditoriaActor", fields: [actorId], references: [id], onDelete: Cascade)
@@ -327,17 +378,16 @@ model DominioAuditoria {
 
 // 4) ModeloJson (modelo serializado y versionado)
 model ModeloJson {
-  id             String    @id @default(uuid()) @db.Uuid
-  proyectoId     String    @db.Uuid
-  contenido      Json
-  version        Int
-  fechaCreacion  DateTime  @default(now())
-  esActual       Boolean   @default(false)
-  nota           String?   @db.VarChar(500)
+  id            String   @id @default(uuid()) @db.Uuid
+  proyectoId    String   @db.Uuid
+  contenido     Json
+  version       Int
+  fechaCreacion DateTime @default(now())
+  esActual      Boolean  @default(false)
+  nota          String?  @db.VarChar(500)
 
-
- creadorMembresiaId String?          @db.Uuid
-creadorMembresia   ProyectoUsuario? @relation("ModeloCreadorMembresia", fields: [creadorMembresiaId, proyectoId], references: [id, proyectoId], onDelete: Restrict )
+  creadorMembresiaId String?          @db.Uuid
+  creadorMembresia   ProyectoUsuario? @relation("ModeloCreadorMembresia", fields: [creadorMembresiaId, proyectoId], references: [id, proyectoId], onDelete: Restrict)
 
   proyecto    Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   hallazgos   ValidacionHallazgo[]
@@ -349,10 +399,10 @@ creadorMembresia   ProyectoUsuario? @relation("ModeloCreadorMembresia", fields: 
 
 // 5) ComentarioHilo (coedición)
 model ComentarioHilo {
-  id         String           @id @default(uuid()) @db.Uuid
-  elementRef String           @db.VarChar(200)
-  estado     EstadoHilo       @default(ABIERTO)
-  creadoEn   DateTime         @default(now())
+  id         String     @id @default(uuid()) @db.Uuid
+  elementRef String     @db.VarChar(200)
+  estado     EstadoHilo @default(ABIERTO)
+  creadoEn   DateTime   @default(now())
 
   membresiaId String?          @db.Uuid
   membresia   ProyectoUsuario? @relation("HiloCreadorMembresia", fields: [membresiaId], references: [id], onDelete: SetNull)
@@ -360,12 +410,11 @@ model ComentarioHilo {
   comentarios Comentario[]
 }
 
-
 model Comentario {
-  id         String           @id @default(uuid()) @db.Uuid
-  hiloId     String           @db.Uuid
-  contenido  String           @db.Text
-  creadoEn   DateTime         @default(now())
+  id        String   @id @default(uuid()) @db.Uuid
+  hiloId    String   @db.Uuid
+  contenido String   @db.Text
+  creadoEn  DateTime @default(now())
 
   autorMembresiaId String?          @db.Uuid
   autorMembresia   ProyectoUsuario? @relation("ComentarioAutorMembresia", fields: [autorMembresiaId], references: [id], onDelete: SetNull)
@@ -375,9 +424,9 @@ model Comentario {
 
 // 7) ValidacionRegla (catálogo)
 model ValidacionRegla {
-  codigo    String     @id @db.VarChar(50)
-  nombre    String     @db.VarChar(150)
-  categoria String     @db.VarChar(50)
+  codigo    String    @id @db.VarChar(50)
+  nombre    String    @db.VarChar(150)
+  categoria String    @db.VarChar(50)
   severidad Severidad
 
   hallazgos ValidacionHallazgo[]
@@ -385,14 +434,14 @@ model ValidacionRegla {
 
 // 8) ValidacionHallazgo (resultado de reglas)
 model ValidacionHallazgo {
-  id                 String           @id @default(uuid()) @db.Uuid
-  modeloVersionId    String           @db.Uuid
-  ruleCode           String           @db.VarChar(50)
-  severidad          Severidad
-  mensaje            String           @db.Text
-  elementRef         String           @db.VarChar(200)
-  estado             EstadoHallazgo   @default(ABIERTO)
-  creadoEn           DateTime         @default(now())
+  id              String         @id @default(uuid()) @db.Uuid
+  modeloVersionId String         @db.Uuid
+  ruleCode        String         @db.VarChar(50)
+  severidad       Severidad
+  mensaje         String         @db.Text
+  elementRef      String         @db.VarChar(200)
+  estado          EstadoHallazgo @default(ABIERTO)
+  creadoEn        DateTime       @default(now())
 
   // Resuelto por membresía (si aplica)
   resueltoPorMembresiaId String?          @db.Uuid
@@ -404,12 +453,12 @@ model ValidacionHallazgo {
 
 // 9) IASugerencia
 model IASugerencia {
-  id               String           @id @default(uuid()) @db.Uuid
-  modeloVersionId  String           @db.Uuid
-  tipo             TipoSugerencia
-  descripcion      String           @db.Text
-  estado           EstadoSugerencia @default(PROPUESTO)
-  creadoEn         DateTime         @default(now())
+  id              String           @id @default(uuid()) @db.Uuid
+  modeloVersionId String           @db.Uuid
+  tipo            TipoSugerencia
+  descripcion     String           @db.Text
+  estado          EstadoSugerencia @default(PROPUESTO)
+  creadoEn        DateTime         @default(now())
 
   creadorMembresiaId String?          @db.Uuid
   creadorMembresia   ProyectoUsuario? @relation("SugerenciaCreadorMembresia", fields: [creadorMembresiaId], references: [id], onDelete: SetNull)
@@ -422,8 +471,8 @@ model IASugerencia {
 
 // 10) Diff
 model Diff {
-  id       String        @id @default(uuid()) @db.Uuid
-  resumen  String        @db.VarChar(300)
+  id      String @id @default(uuid()) @db.Uuid
+  resumen String @db.VarChar(300)
 
   entradas    DiffEntrada[]
   sugerencias IASugerencia[]
@@ -451,39 +500,39 @@ model GeneracionJob {
   fin        DateTime?
   log        String?          @db.Text
 
-  proyecto  Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyecto   Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   artefactos Artefacto[]
 }
 
 // 13) Artefacto
 model Artefacto {
-  id    String       @id @default(uuid()) @db.Uuid
-  jobId String       @db.Uuid
+  id    String        @id @default(uuid()) @db.Uuid
+  jobId String        @db.Uuid
   tipo  TipoArtefacto
-  ruta  String       @db.VarChar(500)
+  ruta  String        @db.VarChar(500)
 
   job GeneracionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 // 14) PruebaEjecucion (smoke)
 model PruebaEjecucion {
-  id         String      @id @default(uuid()) @db.Uuid
-  proyectoId String      @db.Uuid
-  baseURL    String      @db.VarChar(255)
+  id         String       @id @default(uuid()) @db.Uuid
+  proyectoId String       @db.Uuid
+  baseURL    String       @db.VarChar(255)
   estado     EstadoPrueba
   inicio     DateTime
   fin        DateTime
 
-  proyecto  Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyecto   Proyecto              @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   resultados PruebaCasoResultado[]
 }
 
 // 15) PruebaCasoResultado
 model PruebaCasoResultado {
-  id             String          @id @default(uuid()) @db.Uuid
-  ejecucionId    String          @db.Uuid
-  endpoint       String          @db.VarChar(300)
-  metodo         String          @db.VarChar(10)
+  id             String  @id @default(uuid()) @db.Uuid
+  ejecucionId    String  @db.Uuid
+  endpoint       String  @db.VarChar(300)
+  metodo         String  @db.VarChar(10)
   statusEsperado Int
   statusObtenido Int
   duracionMs     Int
@@ -494,11 +543,10 @@ model PruebaCasoResultado {
 
 // 16) DatoSemilla
 model DatoSemilla {
-  id          String   @id @default(uuid()) @db.Uuid
-  proyectoId  String   @db.Uuid
-  entidad     String   @db.VarChar(100)
+  id          String @id @default(uuid()) @db.Uuid
+  proyectoId  String @db.Uuid
+  entidad     String @db.VarChar(100)
   payloadJSON Json
 
   proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
 }
-
