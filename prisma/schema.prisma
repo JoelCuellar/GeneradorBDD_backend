@@ -89,6 +89,39 @@ enum TipoCambio {
   REMOVE
 }
 
+
+enum TipoAtributoDominio {
+  STRING
+  ENTERO
+  DECIMAL
+  BOOLEANO
+  FECHA
+  FECHA_HORA
+  UUID
+  TEXTO
+}
+
+enum MultiplicidadRelacion {
+  UNO
+  CERO_O_UNO
+  UNO_O_MAS
+  CERO_O_MAS
+}
+
+enum AccionModeloDominio {
+  CLASE_CREADA
+  CLASE_ACTUALIZADA
+  CLASE_ELIMINADA
+  ATRIBUTO_CREADO
+  ATRIBUTO_ACTUALIZADO
+  ATRIBUTO_ELIMINADO
+  RELACION_CREADA
+  RELACION_ACTUALIZADA
+  RELACION_ELIMINADA
+  IDENTIDAD_DEFINIDA
+  IDENTIDAD_ELIMINADA
+}
+
 // ========================= Modelos =========================
 
 // 1) Usuario
@@ -109,6 +142,7 @@ model Usuario {
   auditoriaAcciones    UsuarioAuditoria[]
   auditoriaActuando    UsuarioAuditoria[] @relation("AuditoriaUsuarioActor")
   auditoriaProyectos   ProyectoAuditoria[] @relation("ProyectoAuditoriaActor")
+  dominioAuditoria     DominioAuditoria[] @relation("DominioAuditoriaActor")
 }
 
 // 2) Proyecto
@@ -132,6 +166,9 @@ model Proyecto {
   pruebas              PruebaEjecucion[]
   datosSemilla         DatoSemilla[]
   auditoriaAcciones    ProyectoAuditoria[]
+  dominioClases       DominioClase[]
+  dominioRelaciones   DominioRelacion[]
+  dominioAuditoria    DominioAuditoria[]
 
   @@index([propietarioId])
 }
@@ -187,6 +224,104 @@ model UsuarioAuditoria {
   actor   Usuario?               @relation("AuditoriaUsuarioActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([usuarioId])
+  @@index([actorId])
+}
+
+model DominioClase {
+  id             String              @id @default(uuid()) @db.Uuid
+  proyectoId     String              @db.Uuid
+  nombre         String              @db.VarChar(150)
+  descripcion    String?             @db.VarChar(500)
+  creadoEn       DateTime            @default(now())
+  actualizadoEn  DateTime            @updatedAt
+
+  proyecto        Proyecto                @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  atributos       DominioAtributo[]
+  relacionesOrigen DominioRelacion[]      @relation("RelacionClaseOrigen")
+  relacionesDestino DominioRelacion[]     @relation("RelacionClaseDestino")
+  identidades     DominioIdentidad[]
+
+  @@unique([proyectoId, nombre])
+  @@index([proyectoId])
+}
+
+model DominioAtributo {
+  id             String                @id @default(uuid()) @db.Uuid
+  claseId        String                @db.Uuid
+  nombre         String                @db.VarChar(150)
+  tipo           TipoAtributoDominio
+  obligatorio    Boolean               @default(false)
+  configuracion  Json?
+  creadoEn       DateTime              @default(now())
+  actualizadoEn  DateTime              @updatedAt
+
+  clase       DominioClase             @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  identidades DominioIdentidadAtributo[]
+
+  @@unique([claseId, nombre])
+}
+
+model DominioRelacion {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  proyectoId            String                  @db.Uuid
+  origenId              String                  @db.Uuid
+  destinoId             String                  @db.Uuid
+  nombre                String?                 @db.VarChar(150)
+  rolOrigen             String?                 @db.VarChar(150)
+  rolDestino            String?                 @db.VarChar(150)
+  multiplicidadOrigen   MultiplicidadRelacion
+  multiplicidadDestino  MultiplicidadRelacion
+  creadoEn              DateTime                @default(now())
+  actualizadoEn         DateTime                @updatedAt
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  origen   DominioClase @relation("RelacionClaseOrigen", fields: [origenId], references: [id])
+  destino  DominioClase @relation("RelacionClaseDestino", fields: [destinoId], references: [id])
+
+  @@index([proyectoId])
+  @@index([origenId])
+  @@index([destinoId])
+}
+
+model DominioIdentidad {
+  id            String                     @id @default(uuid()) @db.Uuid
+  claseId       String                     @db.Uuid
+  nombre        String                     @db.VarChar(150)
+  descripcion   String?                    @db.VarChar(500)
+  creadoEn      DateTime                   @default(now())
+  actualizadoEn DateTime                   @updatedAt
+
+  clase      DominioClase               @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  atributos  DominioIdentidadAtributo[]
+
+  @@unique([claseId, nombre])
+}
+
+model DominioIdentidadAtributo {
+  identidadId String @db.Uuid
+  atributoId  String @db.Uuid
+  orden       Int    @default(0)
+
+  identidad DominioIdentidad @relation(fields: [identidadId], references: [id], onDelete: Cascade)
+  atributo  DominioAtributo  @relation(fields: [atributoId], references: [id], onDelete: Cascade)
+
+  @@id([identidadId, atributoId])
+}
+
+model DominioAuditoria {
+  id         String               @id @default(uuid()) @db.Uuid
+  proyectoId String               @db.Uuid
+  actorId    String               @db.Uuid
+  accion     AccionModeloDominio
+  entidad    String               @db.VarChar(100)
+  entidadId  String               @db.Uuid
+  detalle    Json?
+  creadoEn   DateTime             @default(now())
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  actor    Usuario  @relation("DominioAuditoriaActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([proyectoId])
   @@index([actorId])
 }
 
@@ -366,3 +501,4 @@ model DatoSemilla {
 
   proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
 }
+

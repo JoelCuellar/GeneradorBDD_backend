@@ -9,7 +9,7 @@ import {
   ArchiveProjectInput,
   CreateProjectInput,
   ListProjectsParams,
- ProjectRepository,
+  ProjectRepository,
   UpdateProjectInput,
 } from '../domain/project.repository';
 import {
@@ -55,7 +55,9 @@ export class PrismaProjectRepository implements ProjectRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async ensureOwnerExists(ownerId: string): Promise<void> {
-    const owner = await this.prisma.usuario.findUnique({ where: { id: ownerId } });
+    const owner = await this.prisma.usuario.findUnique({
+      where: { id: ownerId },
+    });
     if (!owner) {
       throw new NotFoundException('Propietario no encontrado');
     }
@@ -77,7 +79,10 @@ export class PrismaProjectRepository implements ProjectRepository {
     return projects.map((project) => mapProject(project));
   }
 
-  async findOwnedById(projectId: string, ownerId: string): Promise<Project | null> {
+  async findOwnedById(
+    projectId: string,
+    ownerId: string,
+  ): Promise<Project | null> {
     const project = await this.prisma.proyecto.findFirst({
       where: { id: projectId, propietarioId: ownerId },
     });
@@ -85,7 +90,9 @@ export class PrismaProjectRepository implements ProjectRepository {
   }
 
   async findByName(name: string): Promise<Project | null> {
-    const project = await this.prisma.proyecto.findUnique({ where: { nombre: name } });
+    const project = await this.prisma.proyecto.findUnique({
+      where: { nombre: name },
+    });
     return project ? mapProject(project) : null;
   }
 
