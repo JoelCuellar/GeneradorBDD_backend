@@ -32,6 +32,13 @@ enum AccionGestionUsuario {
   SUSPENSION 
   BAJA_LOGICA 
 }
+
+enum AccionGestionProyecto { 
+  CREACION 
+  ACTUALIZACION 
+  ARCHIVADO 
+}
+
 enum EstadoHilo { 
   ABIERTO 
   RESUELTO
@@ -101,26 +108,32 @@ model Usuario {
   membresias           ProyectoUsuario[]
   auditoriaAcciones    UsuarioAuditoria[]
   auditoriaActuando    UsuarioAuditoria[] @relation("AuditoriaUsuarioActor")
+  auditoriaProyectos   ProyectoAuditoria[] @relation("ProyectoAuditoriaActor")
 }
 
 // 2) Proyecto
 model Proyecto {
-  id            String            @id @default(uuid()) @db.Uuid
-  nombre        String            @db.VarChar(200)
-  descripcion   String?           @db.Text
-  fechaCreacion DateTime          @default(now())
-  archivado     Boolean           @default(false)
+  id                   String            @id @default(uuid()) @db.Uuid
+  nombre               String            @unique @db.VarChar(200)
+  descripcion          String?           @db.Text
+  fechaCreacion        DateTime          @default(now())
+  fechaActualizacion   DateTime          @updatedAt
+  archivado            Boolean           @default(false)
+  archivadoEn          DateTime?
 
-  // Propietario (quien lo creó)
-  propietarioId String            @db.Uuid
-  propietario   Usuario           @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
+  // Propietario (quien lo creo)
+  propietarioId        String            @db.Uuid
+  propietario          Usuario           @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
 
   // Relaciones
-  membresias    ProyectoUsuario[]
-  modelos       ModeloJson[]
-  jobs          GeneracionJob[]
-  pruebas       PruebaEjecucion[]
-  datosSemilla  DatoSemilla[]
+  membresias           ProyectoUsuario[]
+  modelos              ModeloJson[]
+  jobs                 GeneracionJob[]
+  pruebas              PruebaEjecucion[]
+  datosSemilla         DatoSemilla[]
+  auditoriaAcciones    ProyectoAuditoria[]
+
+  @@index([propietarioId])
 }
 
 // 3) ProyectoUsuario (membresía por proyecto)
@@ -145,6 +158,21 @@ model ProyectoUsuario {
   @@unique([proyectoId, usuarioId])
   // Para FK compuesta desde ModeloJson:
   @@unique([id, proyectoId])
+}
+
+model ProyectoAuditoria {
+  id         String               @id @default(uuid()) @db.Uuid
+  proyectoId String               @db.Uuid
+  actorId    String?              @db.Uuid
+  accion     AccionGestionProyecto
+  detalle    Json?
+  creadoEn   DateTime             @default(now())
+
+  proyecto Proyecto            @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  actor    Usuario?            @relation("ProyectoAuditoriaActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([proyectoId])
+  @@index([actorId])
 }
 
 model UsuarioAuditoria {
