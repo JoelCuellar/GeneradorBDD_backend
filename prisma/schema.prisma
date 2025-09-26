@@ -16,6 +16,22 @@ enum RolProyecto {
   EDITOR 
   LECTOR 
 }
+
+enum EstadoUsuario { 
+  ACTIVO 
+  SUSPENDIDO 
+  ELIMINADO 
+}
+
+enum AccionGestionUsuario { 
+  CREACION 
+  INVITACION 
+  ACTUALIZACION_DATOS 
+  CAMBIO_ROL 
+  ACTIVACION 
+  SUSPENSION 
+  BAJA_LOGICA 
+}
 enum EstadoHilo { 
   ABIERTO 
   RESUELTO
@@ -73,12 +89,18 @@ model Usuario {
   id             String              @id @default(uuid()) @db.Uuid
   nombre         String              @db.VarChar(100)
   email          String              @unique @db.VarChar(255)
-  fechaCreacion  DateTime            @default(now())
-  activo         Boolean             @default(true)
+  fechaCreacion       DateTime            @default(now())
+  activo              Boolean             @default(true)
+  estado              EstadoUsuario       @default(ACTIVO)
+  fechaActualizacion  DateTime            @updatedAt
+  suspendidoEn        DateTime?
+  eliminadoEn         DateTime?
 
   // Relaciones
-  proyectosPropietario Proyecto[]    @relation("ProyectoPropietario")
+  proyectosPropietario Proyecto[]         @relation("ProyectoPropietario")
   membresias           ProyectoUsuario[]
+  auditoriaAcciones    UsuarioAuditoria[]
+  auditoriaActuando    UsuarioAuditoria[] @relation("AuditoriaUsuarioActor")
 }
 
 // 2) Proyecto
@@ -123,6 +145,21 @@ model ProyectoUsuario {
   @@unique([proyectoId, usuarioId])
   // Para FK compuesta desde ModeloJson:
   @@unique([id, proyectoId])
+}
+
+model UsuarioAuditoria {
+  id        String                @id @default(uuid()) @db.Uuid
+  usuarioId String                @db.Uuid
+  actorId   String?               @db.Uuid
+  accion    AccionGestionUsuario
+  detalle   Json?
+  creadoEn  DateTime              @default(now())
+
+  usuario Usuario                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  actor   Usuario?               @relation("AuditoriaUsuarioActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
+  @@index([actorId])
 }
 
 // 4) ModeloJson (modelo serializado y versionado)
