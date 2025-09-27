@@ -36,6 +36,12 @@ export interface AssignProjectRoleInput {
   actorId: string;
 }
 
+export interface RemoveProjectCollaboratorInput {
+  projectId: string;
+  userId: string;
+  actorId: string;
+}
+
 export interface ChangeUserStatusInput {
   userId: string;
   actorId: string;
@@ -63,18 +69,41 @@ export interface UpdateUserInput {
   name: string;
 }
 
+export interface SetUserPasswordInput {
+  userId: string;
+  passwordHash: string;
+  name?: string;
+}
+
+export interface CreateAuthUserInput {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+}
+
 export interface UserRepository {
   findById(id: string): Promise<User | null>;
   findDetailsById(id: string): Promise<UserDetails | null>;
   findByEmail(email: string): Promise<User | null>;
   create(user: User, actorId: string): Promise<User>;
+  createAuthUser(input: CreateAuthUserInput): Promise<User>;
+  setUserPassword(input: SetUserPasswordInput): Promise<User>;
   update(input: UpdateUserInput): Promise<User>;
   list(params: ListUsersParams): Promise<UserListItem[]>;
-  assignProjectRole(input: AssignProjectRoleInput): Promise<ProjectMembershipSnapshot>;
+  assignProjectRole(
+    input: AssignProjectRoleInput,
+  ): Promise<ProjectMembershipSnapshot>;
+  removeProjectCollaborator(
+    input: RemoveProjectCollaboratorInput,
+  ): Promise<ProjectMembershipSnapshot>;
   changeStatus(input: ChangeUserStatusInput): Promise<User>;
   softDelete(input: SoftDeleteUserInput): Promise<User>;
   getAuditLog(userId: string): Promise<UserAuditRecord[]>;
   recordAudit(entry: AuditLogInput): Promise<void>;
-  ensureActorCanManageProject(actorId: string, projectId: string): Promise<void>;
+  ensureActorCanManageProject(
+    actorId: string,
+    projectId: string,
+  ): Promise<void>;
   validateNotLastOwner(userId: string): Promise<string[]>;
 }

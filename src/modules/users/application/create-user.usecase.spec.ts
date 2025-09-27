@@ -1,31 +1,49 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BadRequestException } from '@nestjs/common';
 import { CreateUserUseCase } from './create-user.usecase';
-import {
-  type UserRepository,
-  type UserDetails,
-} from '../domain/user.repository';
+import { type UserDetails } from '../domain/user.repository';
 import { User, UserStatus } from '../domain/user.entity';
-
+import { UserRepository } from '../domain/user.repository';
 const actorId = 'actor-1';
 const projectId = 'project-1';
 
 const buildRepoMock = (): jest.Mocked<UserRepository> => ({
-  findById: jest.fn(),
-  findDetailsById: jest.fn(),
-  findByEmail: jest.fn(),
-  create: jest.fn(),
-  update: jest.fn(),
-  list: jest.fn(),
-  assignProjectRole: jest.fn(),
-  changeStatus: jest.fn(),
-  softDelete: jest.fn(),
-  getAuditLog: jest.fn(),
-  recordAudit: jest.fn(),
-  ensureActorCanManageProject: jest.fn(),
-  validateNotLastOwner: jest.fn(),
-});
+  findById: jest.fn() as jest.MockedFunction<UserRepository['findById']>,
+  findDetailsById: jest.fn() as jest.MockedFunction<
+    UserRepository['findDetailsById']
+  >,
+  findByEmail: jest.fn() as jest.MockedFunction<UserRepository['findByEmail']>,
+  create: jest.fn() as jest.MockedFunction<UserRepository['create']>,
+  update: jest.fn() as jest.MockedFunction<UserRepository['update']>,
 
+  // 👇 agrega estos dos que faltan
+  list: jest.fn() as jest.MockedFunction<UserRepository['list']>,
+  softDelete: jest.fn() as jest.MockedFunction<UserRepository['softDelete']>,
+
+  createAuthUser: jest.fn() as jest.MockedFunction<
+    UserRepository['createAuthUser']
+  >,
+  setUserPassword: jest.fn() as jest.MockedFunction<
+    UserRepository['setUserPassword']
+  >,
+  validateNotLastOwner: jest.fn() as jest.MockedFunction<
+    UserRepository['validateNotLastOwner']
+  >,
+  assignProjectRole: jest.fn() as jest.MockedFunction<
+    UserRepository['assignProjectRole']
+  >,
+  changeStatus: jest.fn() as jest.MockedFunction<
+    UserRepository['changeStatus']
+  >,
+  getAuditLog: jest.fn() as jest.MockedFunction<UserRepository['getAuditLog']>,
+  recordAudit: jest.fn() as jest.MockedFunction<UserRepository['recordAudit']>,
+  ensureActorCanManageProject: jest.fn() as jest.MockedFunction<
+    UserRepository['ensureActorCanManageProject']
+  >,
+  removeProjectCollaborator: jest.fn() as jest.MockedFunction<
+    UserRepository['removeProjectCollaborator']
+  >,
+});
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
   let repo: jest.Mocked<UserRepository>;
@@ -39,7 +57,12 @@ describe('CreateUserUseCase', () => {
     repo.ensureActorCanManageProject.mockResolvedValue();
     repo.findByEmail.mockResolvedValue(null);
 
-    const created = new User('id', 'usuario@example.com', 'Nombre', UserStatus.ACTIVO);
+    const created = new User(
+      'id',
+      'usuario@example.com',
+      'Nombre',
+      UserStatus.ACTIVO,
+    );
     repo.create.mockResolvedValue(created);
 
     const expectedDetails: UserDetails = {
@@ -64,7 +87,10 @@ describe('CreateUserUseCase', () => {
       role: 'EDITOR',
     });
 
-    expect(repo.ensureActorCanManageProject).toHaveBeenCalledWith(actorId, projectId);
+    expect(repo.ensureActorCanManageProject).toHaveBeenCalledWith(
+      actorId,
+      projectId,
+    );
     expect(repo.findByEmail).toHaveBeenCalledWith('usuario@example.com');
     expect(repo.create).toHaveBeenCalled();
     expect(repo.assignProjectRole).toHaveBeenCalledWith({
@@ -81,7 +107,12 @@ describe('CreateUserUseCase', () => {
     repo.ensureActorCanManageProject.mockResolvedValue();
     repo.findByEmail.mockResolvedValue(null);
 
-    const created = new User('id2', 'sin.nombre@example.com', 'sin.nombre', UserStatus.ACTIVO);
+    const created = new User(
+      'id2',
+      'sin.nombre@example.com',
+      'sin.nombre',
+      UserStatus.ACTIVO,
+    );
     repo.create.mockResolvedValue(created);
     repo.assignProjectRole.mockResolvedValue({
       projectId,

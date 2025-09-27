@@ -10,9 +10,12 @@ import {
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import {
   AssignProjectRoleInput,
+  RemoveProjectCollaboratorInput,
   AuditLogInput,
   ChangeUserStatusInput,
+  CreateAuthUserInput,
   ListUsersParams,
+  SetUserPasswordInput,
   SoftDeleteUserInput,
   UpdateUserInput,
   UserDetails,
@@ -44,6 +47,7 @@ const mapUsuarioToDomain = (usuario: PrismaUsuario): User =>
     usuario.fechaActualizacion,
     usuario.suspendidoEn,
     usuario.eliminadoEn,
+    usuario.passwordHash ?? null,
   );
 
 const mapMembershipToSnapshot = (
@@ -121,6 +125,7 @@ export class PrismaUserRepository implements UserRepository {
             fechaCreacion: user.createdAt,
             estado: toEstado(user.status),
             activo: user.status === UserStatus.ACTIVO,
+            passwordHash: user.passwordHash ?? null,
           },
         });
 
@@ -142,6 +147,78 @@ export class PrismaUserRepository implements UserRepository {
         error.code === 'P2002'
       ) {
         throw new BadRequestException('El correo ya est√° registrado');
+      }
+      throw error;
+    }
+  }
+
+  async createAuthUser(input: CreateAuthUserInput): Promise<User> {
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const nuevo = await tx.usuario.create({
+          data: {
+            id: input.id,
+            email: input.email,
+            nombre: input.name,
+            passwordHash: input.passwordHash,
+            estado: EstadoUsuario.ACTIVO,
+            activo: true,
+          },
+        });
+
+        await tx.usuarioAuditoria.create({
+          data: {
+            usuarioId: nuevo.id,
+            actorId: null,
+            accion: AccionGestionUsuario.CREACION,
+          },
+        });
+
+        return nuevo;
+      });
+
+      return mapUsuarioToDomain(created);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('El correo ya est· registrado');
+      }
+      throw error;
+    }
+  }
+
+  async setUserPassword(input: SetUserPasswordInput): Promise<User> {
+    try {
+      const usuario = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.usuario.update({
+          where: { id: input.userId },
+          data: {
+            passwordHash: input.passwordHash,
+            ...(input.name ? { nombre: input.name } : {}),
+          },
+        });
+
+        await tx.usuarioAuditoria.create({
+          data: {
+            usuarioId: input.userId,
+            actorId: input.userId,
+            accion: AccionGestionUsuario.ACTUALIZACION_DATOS,
+            detalle: input.name ? { autoServicio: true, nombre: input.name } : { autoServicio: true },
+          },
+        });
+
+        return updated;
+      });
+
+      return mapUsuarioToDomain(usuario);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Usuario no encontrado');
       }
       throw error;
     }
@@ -303,6 +380,67 @@ export class PrismaUserRepository implements UserRepository {
       });
 
       return asignacion;
+    });
+
+    return mapMembershipToSnapshot(membership);
+  }
+
+  async removeProjectCollaborator(
+    input: RemoveProjectCollaboratorInput,
+  ): Promise<ProjectMembershipSnapshot> {
+    await this.ensureActorCanManageProject(input.actorId, input.projectId);
+
+    const membership = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.proyectoUsuario.findUnique({
+        where: {
+          proyectoId_usuarioId: {
+            proyectoId: input.projectId,
+            usuarioId: input.userId,
+          },
+        },
+        include: { proyecto: { select: { id: true, nombre: true } } },
+      });
+
+      if (!current || !current.activo) {
+        throw new NotFoundException('El usuario no es colaborador activo del proyecto');
+      }
+
+      if (current.rol === RolProyecto.PROPIETARIO) {
+        const otherOwners = await tx.proyectoUsuario.count({
+          where: {
+            proyectoId: input.projectId,
+            rol: RolProyecto.PROPIETARIO,
+            activo: true,
+            NOT: { usuarioId: input.userId },
+          },
+        });
+        if (otherOwners === 0) {
+          throw new BadRequestException(
+            'No se puede quitar al ultimo propietario del proyecto',
+          );
+        }
+      }
+
+      const updated = await tx.proyectoUsuario.update({
+        where: { id: current.id },
+        data: { activo: false },
+        include: { proyecto: { select: { id: true, nombre: true } } },
+      });
+
+      await tx.usuarioAuditoria.create({
+        data: {
+          usuarioId: input.userId,
+          actorId: input.actorId,
+          accion: AccionGestionUsuario.CAMBIO_ROL,
+          detalle: {
+            proyectoId: input.projectId,
+            rol: updated.rol,
+            activo: false,
+          },
+        },
+      });
+
+      return updated;
     });
 
     return mapMembershipToSnapshot(membership);

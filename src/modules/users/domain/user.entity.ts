@@ -44,6 +44,7 @@ export class User {
     public readonly updatedAt: Date | null = null,
     public readonly suspendedAt: Date | null = null,
     public readonly deletedAt: Date | null = null,
+    public passwordHash: string | null = null,
   ) {}
 
   get isActive(): boolean {

@@ -37,6 +37,10 @@ import {
   type GetUserHistoryInputDto,
 } from '../../application/get-user-history.usecase';
 import {
+  RemoveProjectCollaboratorUseCase,
+  type RemoveProjectCollaboratorInputDto,
+} from '../../application/remove-project-collaborator.usecase';
+import {
   IsEmail,
   IsIn,
   IsOptional,
@@ -125,6 +129,7 @@ export class UsersController {
     private readonly listUsers: ListUsersUseCase,
     private readonly getUserDetails: GetUserDetailsUseCase,
     private readonly getUserHistory: GetUserHistoryUseCase,
+    private readonly removeCollaborator: RemoveProjectCollaboratorUseCase,
   ) {}
 
   @Post()
@@ -196,6 +201,16 @@ export class UsersController {
       reason: dto.reason,
     };
     return this.changeStatus.execute(payload);
+  }
+
+  @Patch(':id/collaboration/remove')
+  removeCollaboration(@Param('id') id: string, @Body() dto: ActorProjectDto) {
+    const payload: RemoveProjectCollaboratorInputDto = {
+      actorId: dto.actorId,
+      projectId: dto.projectId,
+      userId: id,
+    };
+    return this.removeCollaborator.execute(payload);
   }
 
   @Patch(':id/delete')

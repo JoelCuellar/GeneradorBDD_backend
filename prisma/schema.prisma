@@ -141,6 +141,7 @@ model Usuario {
   id                 String        @id @default(uuid()) @db.Uuid
   nombre             String        @db.VarChar(100)
   email              String        @unique @db.VarChar(255)
+  passwordHash      String?       @db.VarChar(255)
   fechaCreacion      DateTime      @default(now())
   activo             Boolean       @default(true)
   estado             EstadoUsuario @default(ACTIVO)
