@@ -12,6 +12,7 @@ export interface UpdateDomainRelationInput {
   targetRole?: string | null;
   sourceMultiplicity?: string;
   targetMultiplicity?: string;
+  type?: string;
 }
 
 @Injectable()
@@ -45,6 +46,7 @@ export class UpdateDomainRelationUseCase {
         input.targetMultiplicity !== undefined
           ? this.parseMultiplicity(input.targetMultiplicity)
           : undefined,
+      type: input.type,
     });
   }
 

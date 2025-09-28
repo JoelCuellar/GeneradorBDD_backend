@@ -17,7 +17,15 @@ enum RolProyecto {
   EDITOR
   LECTOR
 }
-
+enum TipoRelacion {
+  ASSOCIATION     // Asociación (flecha sólida)
+  AGGREGATION     // Agregación (rombo blanco)
+  COMPOSITION     // Composición (rombo negro)
+  GENERALIZATION  // Generalización (triángulo hueco)
+  REALIZATION     // Realización (triángulo hueco discont.)
+  DEPENDENCY      // Dependencia (línea discontinua)
+  LINK            // Enlace sin flechas (visual, no UML estricto)
+}
 enum EstadoUsuario {
   ACTIVO
   SUSPENDIDO
@@ -286,6 +294,7 @@ model DominioRelacion {
   rolDestino           String?               @db.VarChar(150)
   multiplicidadOrigen  MultiplicidadRelacion
   multiplicidadDestino MultiplicidadRelacion
+  tipo                 TipoRelacion @default(ASSOCIATION)
   creadoEn             DateTime              @default(now())
   actualizadoEn        DateTime              @updatedAt
 

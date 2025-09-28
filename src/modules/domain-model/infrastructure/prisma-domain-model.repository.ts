@@ -155,6 +155,7 @@ const mapRelation = (relation: PrismaDominioRelacion): DomainRelation => ({
   targetRole: relation.rolDestino ?? null,
   sourceMultiplicity: multiplicityMap[relation.multiplicidadOrigen],
   targetMultiplicity: multiplicityMap[relation.multiplicidadDestino],
+  type: relation.tipo as any,
   createdAt: relation.creadoEn,
   updatedAt: relation.actualizadoEn,
 });
@@ -540,6 +541,7 @@ export class PrismaDomainModelRepository implements DomainModelRepository {
         rolDestino: this.normalizeNullable(input.targetRole),
         multiplicidadOrigen: reverseMultiplicityMap[sourceMultiplicity],
         multiplicidadDestino: reverseMultiplicityMap[targetMultiplicity],
+        tipo: (input as any).type ?? 'ASSOCIATION',
       },
     });
 
@@ -580,6 +582,9 @@ export class PrismaDomainModelRepository implements DomainModelRepository {
     if (input.targetMultiplicity !== undefined) {
       const mult = this.ensureMultiplicity(input.targetMultiplicity);
       data.multiplicidadDestino = reverseMultiplicityMap[mult];
+    }
+    if ((input as any).type !== undefined) {
+      (data as any).tipo = (input as any).type;
     }
 
     if (Object.keys(data).length === 0) {

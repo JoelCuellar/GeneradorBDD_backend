@@ -8,7 +8,15 @@ export enum DomainAttributeType {
   UUID = 'UUID',
   TEXTO = 'TEXTO',
 }
-
+export enum DomainRelationType {
+  ASSOCIATION = 'ASSOCIATION',
+  AGGREGATION = 'AGGREGATION',
+  COMPOSITION = 'COMPOSITION',
+  GENERALIZATION = 'GENERALIZATION',
+  REALIZATION = 'REALIZATION',
+  DEPENDENCY = 'DEPENDENCY',
+  LINK = 'LINK',
+}
 export enum DomainMultiplicity {
   UNO = 'UNO',
   CERO_O_UNO = 'CERO_O_UNO',
@@ -82,6 +90,7 @@ export interface DomainRelation {
   targetRole: string | null;
   sourceMultiplicity: DomainMultiplicity;
   targetMultiplicity: DomainMultiplicity;
+  type: DomainRelationType;
   createdAt: Date;
   updatedAt: Date;
 }

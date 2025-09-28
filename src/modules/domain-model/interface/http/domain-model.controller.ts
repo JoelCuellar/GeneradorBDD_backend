@@ -122,6 +122,9 @@ class CreateRelationDto extends ActorDto {
 
   @IsString()
   targetMultiplicity!: string;
+
+  @IsString()
+  type!: string;
 }
 
 class UpdateRelationDto extends ActorDto {
@@ -147,6 +150,9 @@ class UpdateRelationDto extends ActorDto {
   @IsOptional()
   @IsString()
   targetMultiplicity?: string;
+
+  @IsString()
+  type!: string;
 }
 
 class DefineIdentityDto extends ActorDto {
@@ -283,6 +289,7 @@ export class DomainModelController {
       targetRole: dto.targetRole,
       sourceMultiplicity: dto.sourceMultiplicity,
       targetMultiplicity: dto.targetMultiplicity,
+      type: dto.type,
     });
   }
 
@@ -301,6 +308,7 @@ export class DomainModelController {
       targetRole: dto.targetRole,
       sourceMultiplicity: dto.sourceMultiplicity,
       targetMultiplicity: dto.targetMultiplicity,
+      type: dto.type,
     });
   }
 

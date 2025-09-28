@@ -13,6 +13,7 @@ export interface CreateDomainRelationInput {
   targetRole?: string | null;
   sourceMultiplicity: string;
   targetMultiplicity: string;
+  type?: string;
 }
 
 @Injectable()
@@ -38,6 +39,7 @@ export class CreateDomainRelationUseCase {
       targetRole: this.normalize(input.targetRole),
       sourceMultiplicity,
       targetMultiplicity,
+      type: input.type ?? 'ASSOCIATION',
     });
   }
 

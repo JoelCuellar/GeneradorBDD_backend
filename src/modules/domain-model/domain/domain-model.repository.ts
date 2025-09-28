@@ -72,6 +72,7 @@ export interface CreateRelationInput {
   targetRole: string | null;
   sourceMultiplicity: string;
   targetMultiplicity: string;
+  type: string;
 }
 
 export interface UpdateRelationInput {
@@ -83,6 +84,7 @@ export interface UpdateRelationInput {
   targetRole?: string | null;
   sourceMultiplicity?: string;
   targetMultiplicity?: string;
+  type?: string;
 }
 
 export interface DeleteRelationInput {
