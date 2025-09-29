@@ -306,6 +306,28 @@ model DominioRelacion {
   @@index([origenId])
   @@index([destinoId])
 }
+// schema.prisma
+model DiagramNodeLayout {
+  projectId String @db.Uuid
+  classId   String @db.Uuid
+  x         Int
+  y         Int
+  updatedAt DateTime @updatedAt
+
+  @@id([projectId, classId])
+  @@index([projectId])
+}
+
+model DiagramEdgeAnchor {
+  projectId   String @db.Uuid
+  relationId  String @db.Uuid
+  sourceHandle String?
+  targetHandle String?
+  updatedAt    DateTime @updatedAt
+
+  @@id([projectId, relationId])
+  @@index([projectId])
+}
 
 model DominioIdentidad {
   id            String   @id @default(uuid()) @db.Uuid
