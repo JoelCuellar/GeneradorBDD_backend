@@ -4,6 +4,9 @@ import { LoginUserUseCase, LoginUserInputDto } from '../../application/login.use
 import { RegisterUserUseCase, RegisterUserInputDto } from '../../application/register-user.usecase';
 import { Allow } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { JwtService } from '@nestjs/jwt';
+
+
 class LoginDto implements LoginUserInputDto {
   @IsEmail()
   email!: string;
@@ -31,15 +34,22 @@ export class AuthController {
   constructor(
     private readonly loginUser: LoginUserUseCase,
     private readonly registerUser: RegisterUserUseCase,
+    private readonly jwt: JwtService,
   ) {}
 
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.loginUser.execute(dto);
-  }
+  async login(@Body() dto: LoginDto) {
+    const result = await this.loginUser.execute(dto);
 
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.registerUser.execute(dto);
+    const accessToken = await this.jwt.signAsync({
+      sub: result.user.id,
+      email: result.user.email,
+    });
+
+    return {
+      accessToken,
+      user: result.user,
+      memberships: result.memberships,
+    };
   }
 }
