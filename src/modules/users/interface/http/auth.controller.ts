@@ -2,7 +2,8 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import { LoginUserUseCase, LoginUserInputDto } from '../../application/login.usecase';
 import { RegisterUserUseCase, RegisterUserInputDto } from '../../application/register-user.usecase';
-
+import { Allow } from 'class-validator';
+import { Transform } from 'class-transformer';
 class LoginDto implements LoginUserInputDto {
   @IsEmail()
   email!: string;

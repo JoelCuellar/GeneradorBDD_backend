@@ -5,6 +5,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { DomainModelModule } from './modules/domain-model/domain-model.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { DiagramModule } from './modules/diagram/diagram.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 @Module({
   imports: [
     PrismaModule,
@@ -13,6 +14,7 @@ import { DiagramModule } from './modules/diagram/diagram.module';
     DomainModelModule,
     RealtimeModule,
     DiagramModule,
+    InvitationsModule,
   ],
 })
 export class AppModule {}

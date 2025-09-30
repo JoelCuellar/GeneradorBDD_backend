@@ -84,7 +84,12 @@ enum EstadoGeneracion {
   COMPLETADO
   FALLADO
 }
-
+enum EstadoInvitacion {
+PENDIENTE
+ACEPTADA
+CANCELADA
+EXPIRADA
+}
 enum TipoArtefacto {
   ZIP
   OPENAPI
@@ -165,6 +170,8 @@ model Usuario {
   auditoriaProyectos          ProyectoAuditoria[]         @relation("ProyectoAuditoriaActor")
   dominioAuditoria            DominioAuditoria[]          @relation("DominioAuditoriaActor")
   dominioHallazgosGestionados DominioValidacionHallazgo[] @relation("DominioHallazgoActor")
+   invitacionesCreadas   ProyectoInvitacion[] @relation("InvitacionCreadaPor")
+  invitacionesAceptadas ProyectoInvitacion[] @relation("InvitacionAceptadaPor")
 }
 
 // 2) Proyecto
@@ -180,6 +187,7 @@ model Proyecto {
   // Propietario (quien lo creo)
   propietarioId String  @db.Uuid
   propietario   Usuario @relation("ProyectoPropietario", fields: [propietarioId], references: [id])
+  invitaciones ProyectoInvitacion[]
 
   // Relaciones
   membresias        ProyectoUsuario[]
@@ -282,6 +290,28 @@ model DominioAtributo {
   identidades DominioIdentidadAtributo[]
 
   @@unique([claseId, nombre])
+}
+
+model ProyectoInvitacion {
+  id            String           @id @default(uuid()) @db.Uuid
+  proyectoId    String           @db.Uuid
+  email         String           @db.VarChar(255)
+  rol           RolProyecto
+  token         String           @unique @db.VarChar(64)
+  estado        EstadoInvitacion @default(PENDIENTE)
+  creadoPorId   String           @db.Uuid
+  creadoEn      DateTime         @default(now())
+  expiraEn      DateTime?
+  aceptadoPorId String?          @db.Uuid
+  aceptadoEn    DateTime?
+
+  // Relaciones
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  creadoPor   Usuario  @relation(name: "InvitacionCreadaPor",   fields: [creadoPorId],   references: [id])
+  aceptadoPor Usuario? @relation(name: "InvitacionAceptadaPor", fields: [aceptadoPorId], references: [id])
+
+  @@index([proyectoId])
+  @@index([email])
 }
 
 model DominioRelacion {
